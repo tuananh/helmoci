@@ -1,0 +1,30 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "helmoci",
+	"main": "src/index.ts",
+	"account_id": "e8ff9c2855e44e717fff487f7627b58f",
+	"compatibility_date": "2025-07-18",
+	"workers_dev": true,
+	"observability": {
+		"enabled": true
+	},
+	"routes": [
+		{
+			"pattern": "helmoci.tuananh.net",
+			"custom_domain": true
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "BUCKET",
+			"bucket_name": "helmoci-cache"
+		}
+	],
+	"rules": [
+		{
+			"type": "Text",
+			"globs": ["**/*.html"],
+			"fallthrough": true
+		}
+	]
+}
