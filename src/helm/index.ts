@@ -21,14 +21,15 @@ export async function resolveChartURL(
 	const entry = entries.find((e) => e.version === version);
 	if (!entry) {
 		throw new ChartNotFoundError(
-			`version ${version} not found for chart ${chartName}`,
+			`Version "${version}" was not found for chart "${chartName}" in ${repoURL}. ` +
+				`List available versions: GET /v2/<host>/<repo-path>/${chartName}/tags/list`,
 		);
 	}
 
 	const rawURL = entry.urls?.[0];
 	if (!rawURL) {
 		throw new ChartNotFoundError(
-			`no URLs for chart ${chartName} version ${version}`,
+			`Chart "${chartName}" version "${version}" in ${repoURL} has no download URL in index.yaml.`,
 		);
 	}
 
@@ -63,12 +64,36 @@ async function listChartEntries(
 ): Promise<ChartEntry[]> {
 	const indexURL = `${repoURL}/index.yaml`;
 	const indexText = await fetchIndexYaml(indexURL, ctx);
-	const index = parseYaml(indexText) as ChartIndex;
 
-	const entries = index.entries?.[chartName];
-	if (!entries?.length) {
+	let index: ChartIndex;
+	try {
+		index = parseYaml(indexText) as ChartIndex;
+	} catch {
 		throw new ChartNotFoundError(
-			`chart ${chartName} not found in ${repoURL}`,
+			`Upstream ${repoURL} did not return a valid Helm index.yaml. ` +
+				`Check that the path maps to a classic Helm repo ` +
+				`(e.g. oci://…/argoproj.github.io/argo-helm/argo-cd → https://argoproj.github.io/argo-helm).`,
+		);
+	}
+
+	if (!index || typeof index !== "object" || !index.entries) {
+		throw new ChartNotFoundError(
+			`No Helm chart index found at ${repoURL}. ` +
+				`Expected ${indexURL} with an "entries" map. ` +
+				`Path format: oci://<proxy>/<host>/<repo-path>/<chart>`,
+		);
+	}
+
+	const entries = index.entries[chartName];
+	if (!entries?.length) {
+		const available = Object.keys(index.entries).slice(0, 8);
+		const hint =
+			available.length > 0
+				? ` Charts in this repo include: ${available.join(", ")}${Object.keys(index.entries).length > 8 ? ", …" : ""}.`
+				: "";
+		throw new ChartNotFoundError(
+			`Chart "${chartName}" was not found in ${repoURL}.${hint} ` +
+				`The chart name is the last path segment.`,
 		);
 	}
 	return entries;
@@ -86,12 +111,25 @@ async function fetchIndexYaml(
 		return cached.text();
 	}
 
-	const upstream = await fetch(indexURL, {
-		headers: { Accept: "application/yaml, text/yaml, text/plain, */*" },
-	});
+	let upstream: Response;
+	try {
+		upstream = await fetch(indexURL, {
+			headers: { Accept: "application/yaml, text/yaml, text/plain, */*" },
+		});
+	} catch (err) {
+		const why = err instanceof Error ? err.message : "network error";
+		throw new ChartNotFoundError(
+			`Could not reach upstream Helm repo at ${indexURL} (${why}). ` +
+				`Check the host/path in your oci:// URL.`,
+		);
+	}
+
 	if (!upstream.ok) {
 		throw new ChartNotFoundError(
-			`failed to download index.yaml (${upstream.status}) from ${indexURL}`,
+			`No Helm repository at ${indexURL.replace(/\/index\.yaml$/, "")} ` +
+				`(index.yaml returned HTTP ${upstream.status}). ` +
+				`Example: oci://helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd ` +
+				`→ https://argoproj.github.io/argo-helm`,
 		);
 	}
 

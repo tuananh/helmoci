@@ -46,6 +46,7 @@ export function ociError(
 			headers: {
 				"Content-Type": "application/json",
 				"Docker-Distribution-API-Version": "registry/2.0",
+				"Cache-Control": "no-store",
 			},
 		},
 	);

@@ -82,11 +82,7 @@ async function handleTagsList(
 ): Promise<Response> {
 	const ref = resolveChartRef(name);
 	if (!ref) {
-		return ociError(
-			404,
-			"NAME_UNKNOWN",
-			`invalid repository path: ${name}`,
-		);
+		return ociError(404, "NAME_UNKNOWN", invalidPathMessage(name));
 	}
 
 	try {
@@ -175,11 +171,7 @@ async function handleManifest(
 
 	const ref = resolveChartRef(name);
 	if (!ref) {
-		return ociError(
-			404,
-			"NAME_UNKNOWN",
-			`invalid repository path: ${name}`,
-		);
+		return ociError(404, "NAME_UNKNOWN", invalidPathMessage(name));
 	}
 
 	// Cache hit via tag pointer.
@@ -249,4 +241,14 @@ async function handleManifest(
 			err instanceof Error ? err.message : "failed to build chart",
 		);
 	}
+}
+
+function invalidPathMessage(name: string): string {
+	return (
+		`Invalid OCI path "${name}". ` +
+		`Use a public host and chart name: ` +
+		`oci://helmoci.tuananh.net/<host>/<repo-path>/<chart> ` +
+		`(e.g. argoproj.github.io/argo-helm/argo-cd). ` +
+		`Localhost and raw IP addresses are not allowed.`
+	);
 }

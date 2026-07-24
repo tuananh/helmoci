@@ -114,8 +114,11 @@ describe("worker", () => {
 		);
 		expect(response.status).toBe(404);
 		const body = (await response.json()) as {
-			errors: { code: string }[];
+			errors: { code: string; message: string }[];
 		};
 		expect(body.errors[0]?.code).toBe("NAME_UNKNOWN");
+		expect(body.errors[0]?.message).toContain("Invalid OCI path");
+		expect(body.errors[0]?.message).toContain("argoproj.github.io");
 	});
 });
+

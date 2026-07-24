@@ -7,34 +7,33 @@
 </head>
 <body>
   <h1>helmoci</h1>
-  <p>Classic Helm chart repos → OCI registry (Cloudflare Workers + R2 cache).</p>
+  <p>Classic Helm chart repos → OCI registry.</p>
 
   <h2>How paths map</h2>
-  <pre>oci://helmoci.tuananh.net/&lt;host&gt;/&lt;repo-path...&gt;/&lt;chart&gt;
+  <blockquote><pre>oci://helmoci.tuananh.net/&lt;host&gt;/&lt;repo-path...&gt;/&lt;chart&gt;
 
 https://argoproj.github.io/argo-helm  +  argo-cd
   →  oci://helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd
 
 https://charts.jetstack.io  +  cert-manager
-  →  oci://helmoci.tuananh.net/charts.jetstack.io/cert-manager</pre>
+  →  oci://helmoci.tuananh.net/charts.jetstack.io/cert-manager</pre></blockquote>
 
   <h2>Helm</h2>
-  <pre>helm pull oci://helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd --version 7.7.12
-helm pull oci://helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd
-helm show values oci://helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd --version 7.7.12
-helm template t oci://helmoci.tuananh.net/charts.jetstack.io/cert-manager --version v1.16.2
-helm install t oci://helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd --version 7.7.12 --dry-run=client</pre>
+  <blockquote><pre>$ helm pull oci://helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd --version 7.7.12
+$ helm pull oci://helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd
+$ helm show values oci://helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd --version 7.7.12
+$ helm template t oci://helmoci.tuananh.net/charts.jetstack.io/cert-manager --version v1.16.2
+$ helm install t oci://helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd --version 7.7.12 --dry-run=client</pre></blockquote>
 
   <h2>crane</h2>
-  <pre>crane ls helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd
-crane manifest helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd:7.7.12
-crane pull helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd:7.7.12 chart.tar</pre>
+  <blockquote><pre>$ crane ls helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd
+$ crane manifest helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd:7.7.12
+$ crane pull helmoci.tuananh.net/argoproj.github.io/argo-helm/argo-cd:7.7.12 chart.tar</pre></blockquote>
 
   <h2>API</h2>
-  <pre>curl -sI https://helmoci.tuananh.net/v2/
-curl -s https://helmoci.tuananh.net/v2/argoproj.github.io/argo-helm/argo-cd/tags/list | jq '.tags[:5]'</pre>
+  <blockquote><pre>$ curl -sI https://helmoci.tuananh.net/v2/
+$ curl -s https://helmoci.tuananh.net/v2/argoproj.github.io/argo-helm/argo-cd/tags/list | jq '.tags[:5]'</pre></blockquote>
 
   <p>Pull-only. No push, no catalog.</p>
 </body>
 </html>
-
