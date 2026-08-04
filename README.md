@@ -38,8 +38,9 @@ No allowlist — if the upstream host is public and serves a valid Helm `index.y
 2. On a cache miss, the Worker fetches `{repo}/index.yaml`, downloads the `.tgz`, and builds a Helm OCI artifact:
    - config: `application/vnd.cncf.helm.config.v1+json`
    - layer: `application/vnd.cncf.helm.chart.content.v1.tar+gzip`
-3. Blobs and a tag pointer are stored in R2.
-4. Subsequent pulls stream blobs from R2 (`ReadableStream`).
+3. Classic chart dependencies in `Chart.yaml` / `Chart.lock` are rewritten to OCI URLs through this proxy, e.g. `https://dandydeveloper.github.io/charts/` → `oci://helmoci.tuananh.net/dandydeveloper.github.io/charts` (Helm appends the dependency name).
+4. Blobs and a tag pointer are stored in R2.
+5. Subsequent pulls stream blobs from R2 (`ReadableStream`).
 
 `index.yaml` responses are cached (~10 minutes) via the Cache API.
 

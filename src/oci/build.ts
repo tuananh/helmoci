@@ -6,6 +6,7 @@ import {
 	type TagPointer,
 } from "./types";
 import { chartConfigFromTgz } from "../helm/chart";
+import { rewriteChartDependencies } from "../helm/rewrite";
 
 export interface BuiltChart {
 	manifest: OciManifest;
@@ -20,10 +21,25 @@ export interface BuiltChart {
 
 export async function buildHelmOciChart(
 	chartTgz: ArrayBuffer,
+	proxyHost: string,
 ): Promise<BuiltChart> {
-	const configBytes = await chartConfigFromTgz(chartTgz);
+	const rewritten = await rewriteChartDependencies(chartTgz, proxyHost);
+	if (rewritten.modified) {
+		for (const r of rewritten.rewrites) {
+			console.log(
+				"rewrote dependency",
+				r.name,
+				r.from,
+				"→",
+				r.to,
+			);
+		}
+	}
+	const layerBytes = rewritten.tgz;
+
+	const configBytes = await chartConfigFromTgz(layerBytes);
 	const configDigest = await sha256Digest(configBytes);
-	const layerDigest = await sha256Digest(new Uint8Array(chartTgz));
+	const layerDigest = await sha256Digest(new Uint8Array(layerBytes));
 
 	const manifest: OciManifest = {
 		schemaVersion: 2,
@@ -37,7 +53,7 @@ export async function buildHelmOciChart(
 			{
 				mediaType: MEDIA_TYPE_HELM_CHART,
 				digest: layerDigest,
-				size: chartTgz.byteLength,
+				size: layerBytes.byteLength,
 			},
 		],
 	};
@@ -51,7 +67,7 @@ export async function buildHelmOciChart(
 		manifestDigest,
 		configBytes,
 		configDigest,
-		layerBytes: chartTgz,
+		layerBytes,
 		layerDigest,
 		pointer: {
 			digest: manifestDigest,

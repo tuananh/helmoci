@@ -64,6 +64,7 @@ export default {
 				return handleManifest(
 					env,
 					ctx,
+					proxyHostFromRequest(request, url),
 					route.name,
 					route.reference,
 					request.method === "HEAD",
@@ -152,6 +153,7 @@ async function handleBlob(
 async function handleManifest(
 	env: Env,
 	ctx: ExecutionContext,
+	proxyHost: string,
 	name: string,
 	reference: string,
 	headOnly: boolean,
@@ -175,7 +177,12 @@ async function handleManifest(
 	}
 
 	// Cache hit via tag pointer.
-	const cached = await getTagPointer(env.BUCKET, ref.fullName, reference);
+	const cached = await getTagPointer(
+		env.BUCKET,
+		proxyHost,
+		ref.fullName,
+		reference,
+	);
 	if (cached) {
 		const obj = await getBlob(env.BUCKET, cached.digest);
 		if (obj) {
@@ -194,7 +201,7 @@ async function handleManifest(
 		console.log("cache miss — fetching", chartURL, "from", ref.repoURL);
 
 		const chartTgz = await downloadChart(chartURL);
-		const built = await buildHelmOciChart(chartTgz);
+		const built = await buildHelmOciChart(chartTgz, proxyHost);
 
 		await Promise.all([
 			putBlob(
@@ -215,7 +222,13 @@ async function handleManifest(
 				built.manifestBytes,
 				MEDIA_TYPE_MANIFEST,
 			),
-			putTagPointer(env.BUCKET, ref.fullName, reference, built.pointer),
+			putTagPointer(
+				env.BUCKET,
+				proxyHost,
+				ref.fullName,
+				reference,
+				built.pointer,
+			),
 		]);
 
 		const headers = registryHeaders({
@@ -251,4 +264,12 @@ function invalidPathMessage(name: string): string {
 		`(e.g. argoproj.github.io/argo-helm/argo-cd). ` +
 		`Localhost and raw IP addresses are not allowed.`
 	);
+}
+
+/** Host clients should use for rewritten oci:// dependency URLs. */
+function proxyHostFromRequest(request: Request, url: URL): string {
+	// Prefer Host header — wrangler custom_domain can rewrite request.url.
+	const host = request.headers.get("Host")?.trim();
+	if (host) return host;
+	return url.host;
 }

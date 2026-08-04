@@ -5,8 +5,13 @@ export function blobKey(digest: string): string {
 	return `blobs/${digest}`;
 }
 
-export function tagKey(fullName: string, tag: string): string {
-	return `tags/${fullName}/${tag}`;
+/** Tag pointer key — scoped by proxy host because rewritten deps embed that host. */
+export function tagKey(
+	proxyHost: string,
+	fullName: string,
+	tag: string,
+): string {
+	return `tags/${proxyHost}/${fullName}/${tag}`;
 }
 
 export async function getBlob(
@@ -95,10 +100,11 @@ export async function readBodyWithLimit(
 
 export async function getTagPointer(
 	bucket: R2Bucket,
+	proxyHost: string,
 	fullName: string,
 	tag: string,
 ): Promise<TagPointer | null> {
-	const obj = await bucket.get(tagKey(fullName, tag));
+	const obj = await bucket.get(tagKey(proxyHost, fullName, tag));
 	if (!obj) return null;
 	try {
 		return (await obj.json()) as TagPointer;
@@ -109,11 +115,12 @@ export async function getTagPointer(
 
 export async function putTagPointer(
 	bucket: R2Bucket,
+	proxyHost: string,
 	fullName: string,
 	tag: string,
 	pointer: TagPointer,
 ): Promise<void> {
-	await bucket.put(tagKey(fullName, tag), JSON.stringify(pointer), {
+	await bucket.put(tagKey(proxyHost, fullName, tag), JSON.stringify(pointer), {
 		httpMetadata: { contentType: "application/json" },
 	});
 }
